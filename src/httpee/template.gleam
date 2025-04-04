@@ -16,13 +16,17 @@ pub type RequestDetails {
 pub type Template {
   Template(
     name: String,
+    file_name: String,
     description: String,
     variables: Dict(String, String),
     request_details: RequestDetails,
   )
 }
 
-pub fn decode(toml: Dict(String, tom.Toml)) -> Result(Template, tom.GetError) {
+pub fn decode(
+  toml: Dict(String, tom.Toml),
+  file_name: String,
+) -> Result(Template, tom.GetError) {
   let request_detail = decode_request_details(toml)
   let variables = toml_string_dict(toml, ["variables"])
 
@@ -31,7 +35,7 @@ pub fn decode(toml: Dict(String, tom.Toml)) -> Result(Template, tom.GetError) {
   use variables <- result.try(variables)
   use request_details <- result.try(request_detail)
 
-  Ok(Template(name, description, variables, request_details))
+  Ok(Template(file_name:, name:, description:, variables:, request_details:))
 }
 
 fn decode_request_details(
@@ -44,7 +48,7 @@ fn decode_request_details(
   use headers <- result.try(headers)
   let body = toml |> tom.get_string(["request", "body"]) |> option.from_result()
 
-  Ok(RequestDetails(url, method, headers, body))
+  Ok(RequestDetails(url:, method:, headers:, body:))
 }
 
 fn toml_string_dict(

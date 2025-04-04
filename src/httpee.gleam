@@ -2,6 +2,7 @@ import argv
 import gleam/io
 import gleam/list
 import gleam/string
+import httpee/commands/list as list_command
 import httpee/template
 import simplifile
 import tom
@@ -11,16 +12,28 @@ pub fn main() {
   let request_files =
     list.filter(files, fn(file) { string.ends_with(file, "toml") })
 
-  let parsed_files =
+  let templates =
     list.map(request_files, fn(file_name) {
       let assert Ok(file_contents) = simplifile.read("./example/" <> file_name)
       let assert Ok(t) = tom.parse(file_contents)
-      t
+      template.decode(t, file_name)
     })
 
-  let templates = list.map(parsed_files, fn(toml) { template.decode(toml) })
+  let x =
+    list.try_fold(templates, [], fn(acc, v) {
+      case v {
+        Error(e) -> Error(e)
+        Ok(v) -> Ok(list.append(acc, [v]))
+      }
+    })
 
-  io.debug(templates)
+  case x {
+    Error(err) -> {
+      io.debug(err)
+      Nil
+    }
+    Ok(templates) -> list_command.render(templates)
+  }
 }
 // let assert Ok(f) = simplifile.read("./example.toml")
 // let assert Ok(parsed) = tom.parse(f)
