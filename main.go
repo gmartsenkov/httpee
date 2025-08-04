@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
+	"strings"
+
 	"github.com/alecthomas/kong"
 	"github.com/pelletier/go-toml/v2"
-	"strings"
 )
 
 type Config struct {
@@ -105,5 +108,35 @@ func main() {
 		})}
 
 	ctx := kong.Parse(&CLI, append(options, commands...)...)
-	fmt.Println(ctx.Command())
+	cmd := ctx.Command()
+
+	template, found := templates[cmd]
+	if found != true {
+		fmt.Println(cmd)
+	}
+
+	resp, err := make_request(template)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(resp)
+	body, _ := io.ReadAll(resp.Body)
+	if err == nil {
+		fmt.Println(string(body))
+	}
+}
+
+func make_request(template Template) (*http.Response, error) {
+	client := http.DefaultClient
+	req, err := http.NewRequest(template.Request.Method, template.Request.Url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range template.Request.Headers {
+		req.Header.Add(key, value)
+	}
+
+	return client.Do(req)
 }

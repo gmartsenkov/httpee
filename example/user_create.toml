@@ -5,7 +5,7 @@ description = "Create user endpoint"
 token = "123"
 
 [request]
-url = "http://test.com/users"
+url = "https://httpbin.org/anything"
 method = "POST"
 body = """
 {
