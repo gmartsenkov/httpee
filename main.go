@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -160,7 +161,7 @@ func log_response(resp *http.Response, cmd *Cmd) {
 
 func make_request(template Template) (*http.Response, error) {
 	client := http.DefaultClient
-	req, err := http.NewRequest(template.Request.Method, template.Request.Url, nil)
+	req, err := http.NewRequest(template.Request.Method, template.Request.Url, bytes.NewReader([]byte(template.Request.Body)))
 	if err != nil {
 		return nil, err
 	}
