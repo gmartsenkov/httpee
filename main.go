@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"strings"
 
@@ -33,6 +34,8 @@ type Template struct {
 }
 
 type Cmd struct {
+	Verbose     bool `help:"Dispay all information about the request and response"`
+	ShowHeaders bool `help:"Display response headers"`
 }
 
 var CLI struct {
@@ -89,14 +92,15 @@ func main() {
 		templates[filePath] = template
 	}
 
-	// fmt.Printf("%+v\n", templates)
-	var commands []kong.Option
+	var kongCommands []kong.Option
+	commands := make(map[string]*Cmd)
 
 	for filePath, template := range templates {
 		var cmd Cmd
 
 		one := kong.DynamicCommand(filePath, template.Description, template.Name, &cmd)
-		commands = append(commands, one)
+		kongCommands = append(kongCommands, one)
+		commands[filePath] = &cmd
 	}
 
 	options := []kong.Option{
@@ -107,7 +111,7 @@ func main() {
 			Compact: true,
 		})}
 
-	ctx := kong.Parse(&CLI, append(options, commands...)...)
+	ctx := kong.Parse(&CLI, append(options, kongCommands...)...)
 	cmd := ctx.Command()
 
 	template, found := templates[cmd]
@@ -115,14 +119,41 @@ func main() {
 		fmt.Println(cmd)
 	}
 
+	command, found := commands[cmd]
+	if found != true {
+		fmt.Println(cmd)
+		os.Exit(1)
+	}
+
+	startTime := time.Now()
 	resp, err := make_request(template)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println(resp)
-	body, _ := io.ReadAll(resp.Body)
-	if err == nil {
+	responseTime := time.Since(startTime).Milliseconds()
+	log_response(resp, command)
+	fmt.Printf("Response time: %d ms\n", responseTime)
+}
+
+func log_response(resp *http.Response, cmd *Cmd) {
+	fmt.Println(resp.Request.Method, resp.Request.URL)
+	fmt.Println("Status:", resp.Status)
+
+	if cmd.ShowHeaders {
+		for k, v := range resp.Header {
+			value := strings.Join(v[:], ",")
+			fmt.Printf("%s: %s\n", k, value)
+		}
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	if len(body) > 0 {
+		fmt.Println("Body:")
 		fmt.Println(string(body))
 	}
 }
