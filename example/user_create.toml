@@ -2,16 +2,18 @@ name = "Users"
 description = "Create user endpoint"
 
 [variables]
+id = 1
 token = "123"
 
 [request]
-url = "https://httpbin.org/anything"
+url = "https://httpbin.org/anything/{{id}}"
 method = "POST"
 body = """
 {
   "data": {
     "attributes": {
-      "name": "Bob"
+      "name": "Bob",
+      "id": "{{id}}"
     }
   }
 }
@@ -19,4 +21,4 @@ body = """
 
 [request.headers]
 content-type = "application/json"
-authorization = "Bearer {{ token }}"
+authorization = "Bearer {{token}}"

@@ -13,11 +13,12 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/valyala/fasttemplate"
 )
 
 type Config struct {
 	Dirs      []string
-	Variables map[string]string
+	Variables map[string]interface{}
 }
 
 type Request struct {
@@ -30,8 +31,17 @@ type Request struct {
 type Template struct {
 	Name        string
 	Description string
-	Variables   map[string]string
+	Variables   map[string]interface{}
 	Request     Request
+}
+
+func (t *Template) normalisedVariables() map[string]interface{} {
+	result := make(map[string]interface{}, len(t.Variables))
+	for k, v := range t.Variables {
+		result[k] = fmt.Sprintf("%v", v)
+	}
+
+	return result
 }
 
 type Cmd struct {
@@ -86,7 +96,8 @@ func main() {
 		var template Template
 		err = toml.Unmarshal([]byte(file), &template)
 		if err != nil {
-			fmt.Printf("Failed to parse %s", file)
+			fmt.Printf("Failed to parse '%s' \n", filePath)
+			fmt.Println(err)
 			os.Exit(1)
 		}
 
@@ -127,7 +138,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	resp, err := make_request(template)
+	resp, err := make_request(&template)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -159,16 +170,27 @@ func log_response(resp *http.Response, cmd *Cmd) {
 	}
 }
 
-func make_request(template Template) (*http.Response, error) {
+func make_request(template *Template) (*http.Response, error) {
 	client := http.DefaultClient
-	req, err := http.NewRequest(template.Request.Method, template.Request.Url, bytes.NewReader([]byte(template.Request.Body)))
+	body := run_template(template.Request.Body, template)
+	req, err := http.NewRequest(
+		template.Request.Method,
+		run_template(template.Request.Url, template),
+		bytes.NewReader([]byte(body)),
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
 	for key, value := range template.Request.Headers {
-		req.Header.Add(key, value)
+		req.Header.Add(key, run_template(value, template))
 	}
 
 	return client.Do(req)
+}
+
+func run_template(temp string, template *Template) string {
+	t := fasttemplate.New(temp, "{{", "}}")
+	return t.ExecuteString(template.normalisedVariables())
 }
