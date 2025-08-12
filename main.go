@@ -87,6 +87,9 @@ func main() {
 
 	templates := make(map[string]Template)
 	for _, filePath := range filePaths {
+		fileName :=
+			strings.TrimSuffix(filePath, filepath.Ext(filePath))
+
 		file, err := os.ReadFile(filePath)
 		if err != nil {
 			fmt.Printf("Failed to read file %s", filePath)
@@ -102,18 +105,18 @@ func main() {
 		}
 
 		template.Variables = mergeMap(template.Variables, cfg.Variables)
-		templates[filePath] = template
+		templates[fileName] = template
 	}
 
 	var kongCommands []kong.Option
 	commands := make(map[string]*Cmd)
 
-	for filePath, template := range templates {
+	for fileName, template := range templates {
 		var cmd Cmd
 
-		one := kong.DynamicCommand(filePath, template.Description, template.Name, &cmd)
+		one := kong.DynamicCommand(fileName, template.Description, template.Name, &cmd)
 		kongCommands = append(kongCommands, one)
-		commands[filePath] = &cmd
+		commands[fileName] = &cmd
 	}
 
 	options := []kong.Option{
