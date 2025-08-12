@@ -101,6 +101,7 @@ func main() {
 			os.Exit(1)
 		}
 
+		template.Variables = mergeMap(template.Variables, cfg.Variables)
 		templates[filePath] = template
 	}
 
@@ -172,10 +173,10 @@ func log_response(resp *http.Response, cmd *Cmd) {
 
 func make_request(template *Template) (*http.Response, error) {
 	client := http.DefaultClient
-	body := run_template(template.Request.Body, template)
+	body := runTemplate(template.Request.Body, template)
 	req, err := http.NewRequest(
 		template.Request.Method,
-		run_template(template.Request.Url, template),
+		runTemplate(template.Request.Url, template),
 		bytes.NewReader([]byte(body)),
 	)
 
@@ -184,13 +185,24 @@ func make_request(template *Template) (*http.Response, error) {
 	}
 
 	for key, value := range template.Request.Headers {
-		req.Header.Add(key, run_template(value, template))
+		req.Header.Add(key, runTemplate(value, template))
 	}
 
 	return client.Do(req)
 }
 
-func run_template(temp string, template *Template) string {
+func runTemplate(temp string, template *Template) string {
 	t := fasttemplate.New(temp, "{{", "}}")
 	return t.ExecuteString(template.normalisedVariables())
+}
+
+func mergeMap(map1 map[string]interface{}, map2 map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range map2 {
+		result[k] = v
+	}
+	for k, v := range map1 {
+		result[k] = v
+	}
+	return result
 }

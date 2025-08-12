@@ -2,7 +2,7 @@ name = "Users"
 description = "Create user endpoint"
 
 [variables]
-id = 1
+id = 100
 token = "123"
 
 [request]
