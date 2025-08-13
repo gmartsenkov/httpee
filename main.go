@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ import (
 
 type Config struct {
 	Dirs      []string
-	Variables map[string]interface{}
+	Variables map[string]any
 }
 
 type Request struct {
@@ -31,12 +32,12 @@ type Request struct {
 type Template struct {
 	Name        string
 	Description string
-	Variables   map[string]interface{}
+	Variables   map[string]any
 	Request     Request
 }
 
-func (t *Template) normalisedVariables() map[string]interface{} {
-	result := make(map[string]interface{}, len(t.Variables))
+func (t *Template) normalisedVariables() map[string]any {
+	result := make(map[string]any, len(t.Variables))
 	for k, v := range t.Variables {
 		result[k] = fmt.Sprintf("%v", v)
 	}
@@ -199,13 +200,9 @@ func runTemplate(temp string, template *Template) string {
 	return t.ExecuteString(template.normalisedVariables())
 }
 
-func mergeMap(map1 map[string]interface{}, map2 map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-	for k, v := range map2 {
-		result[k] = v
-	}
-	for k, v := range map1 {
-		result[k] = v
-	}
+func mergeMap(map1 map[string]any, map2 map[string]any) map[string]any {
+	result := make(map[string]any)
+	maps.Copy(result, map2)
+	maps.Copy(result, map1)
 	return result
 }
