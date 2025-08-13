@@ -1,0 +1,7 @@
+dirs = [
+  "example"
+]
+
+[variables]
+id = "5"
+token = "123"

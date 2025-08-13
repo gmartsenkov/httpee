@@ -6,9 +6,9 @@ id = "1"
 token = "123"
 
 [request]
-url = "http://test.com/users/{{ id }}"
+url = "https://httpbin.org/anything/{{id}}"
 method = "GET"
 
 [request.headers]
 content-type = "application/json"
-authorization = "Bearer {{ token }}"
+authorization = "Bearer {{token}}"
