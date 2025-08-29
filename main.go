@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,35 +14,6 @@ import (
 	"github.com/valyala/fasttemplate"
 	"strings"
 )
-
-type Config struct {
-	Dirs              []string
-	Variables         map[string]any
-	AdditionalConfigs []string `toml:"additional-configs"`
-}
-
-type Request struct {
-	Url     string
-	Method  string
-	Body    string
-	Headers map[string]string
-}
-
-type Template struct {
-	Name        string
-	Description string
-	Variables   map[string]any
-	Request     Request
-}
-
-func (t *Template) normalisedVariables() map[string]any {
-	result := make(map[string]any, len(t.Variables))
-	for k, v := range t.Variables {
-		result[k] = fmt.Sprintf("%v", v)
-	}
-
-	return result
-}
 
 type Cmd struct {
 	Verbose     bool `help:"Dispay all information about the request and response"`
@@ -80,7 +50,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		mergeConfig(&cfg, &newCfg)
+		cfg.merge(&newCfg)
 	}
 
 	filePaths := []string{}
@@ -191,32 +161,7 @@ func log_response(resp *http.Response, cmd *Cmd) {
 	}
 }
 
-func make_request(template *Template) (*http.Response, error) {
-	client := http.DefaultClient
-	body := runTemplate(template.Request.Body, template)
-	req, err := http.NewRequest(
-		template.Request.Method,
-		runTemplate(template.Request.Url, template),
-		bytes.NewReader([]byte(body)),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range template.Request.Headers {
-		req.Header.Add(key, runTemplate(value, template))
-	}
-
-	return client.Do(req)
-}
-
 func runTemplate(temp string, template *Template) string {
 	t := fasttemplate.New(temp, "{{", "}}")
 	return t.ExecuteString(template.normalisedVariables())
-}
-
-func mergeConfig(baseConfig *Config, newConfig *Config) {
-	baseConfig.Variables = lo.Assign(newConfig.Variables, baseConfig.Variables)
-	baseConfig.Dirs = lo.Union(baseConfig.Dirs, newConfig.Dirs)
 }
