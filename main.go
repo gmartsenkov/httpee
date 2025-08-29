@@ -18,8 +18,9 @@ import (
 )
 
 type Config struct {
-	Dirs      []string
-	Variables map[string]any
+	Dirs              []string
+	Variables         map[string]any
+	AdditionalConfigs []string `toml:"additional-configs"`
 }
 
 type Request struct {
@@ -67,6 +68,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	for _, filePath := range cfg.AdditionalConfigs {
+		file, err := os.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		var newCfg Config
+		err = toml.Unmarshal(file, &newCfg)
+		if err != nil {
+			fmt.Println("Failed to parse ", filePath)
+			os.Exit(1)
+		}
+
+		mergeConfig(&cfg, &newCfg)
+	}
+
 	filePaths := []string{}
 
 	for _, dir := range cfg.Dirs {
@@ -78,7 +95,7 @@ func main() {
 		}
 
 		for _, entry := range dir_entries {
-			if strings.HasSuffix(entry.Name(), ".toml") != true {
+			if !strings.HasSuffix(entry.Name(), ".toml") {
 				continue
 			}
 			filepath := filepath.Join(dir, entry.Name())
@@ -132,12 +149,12 @@ func main() {
 	cmd := ctx.Command()
 
 	template, found := templates[cmd]
-	if found != true {
+	if !found {
 		fmt.Println(cmd)
 	}
 
 	command, found := commands[cmd]
-	if found != true {
+	if !found {
 		fmt.Println(cmd)
 		os.Exit(1)
 	}
@@ -205,4 +222,8 @@ func mergeMap(map1 map[string]any, map2 map[string]any) map[string]any {
 	maps.Copy(result, map2)
 	maps.Copy(result, map1)
 	return result
+}
+
+func mergeConfig(baseConfig *Config, newConfig *Config) {
+	baseConfig.Variables = mergeMap(newConfig.Variables, baseConfig.Variables)
 }

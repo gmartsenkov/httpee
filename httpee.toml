@@ -1,6 +1,5 @@
-dirs = [
-  "example"
-]
+dirs = ["example"]
+additional-configs = ["httpee.local.toml"]
 
 [variables]
 id = "5"
