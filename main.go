@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"strings"
-
 	"github.com/alecthomas/kong"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/samber/lo"
 	"github.com/valyala/fasttemplate"
+	"strings"
 )
 
 type Config struct {
@@ -122,7 +121,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		template.Variables = mergeMap(template.Variables, cfg.Variables)
+		template.Variables = lo.Assign(template.Variables, cfg.Variables)
 		templates[fileName] = template
 	}
 
@@ -217,13 +216,7 @@ func runTemplate(temp string, template *Template) string {
 	return t.ExecuteString(template.normalisedVariables())
 }
 
-func mergeMap(map1 map[string]any, map2 map[string]any) map[string]any {
-	result := make(map[string]any)
-	maps.Copy(result, map2)
-	maps.Copy(result, map1)
-	return result
-}
-
 func mergeConfig(baseConfig *Config, newConfig *Config) {
-	baseConfig.Variables = mergeMap(newConfig.Variables, baseConfig.Variables)
+	baseConfig.Variables = lo.Assign(newConfig.Variables, baseConfig.Variables)
+	baseConfig.Dirs = lo.Union(baseConfig.Dirs, newConfig.Dirs)
 }

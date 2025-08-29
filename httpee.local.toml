@@ -1,3 +1,5 @@
+dirs = ["example/accounts"]
 [variables]
 id = "bob"
 token = "override"
+secret = "secret var"
