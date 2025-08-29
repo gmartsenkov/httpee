@@ -14,10 +14,10 @@ type Request struct {
 
 func make_request(template *Template) (*http.Response, error) {
 	client := http.DefaultClient
-	body := runTemplate(template.Request.Body, template)
+	body := template.interpolate(template.Request.Body)
 	req, err := http.NewRequest(
 		template.Request.Method,
-		runTemplate(template.Request.Url, template),
+		template.interpolate(template.Request.Url),
 		bytes.NewReader([]byte(body)),
 	)
 
@@ -26,7 +26,7 @@ func make_request(template *Template) (*http.Response, error) {
 	}
 
 	for key, value := range template.Request.Headers {
-		req.Header.Add(key, runTemplate(value, template))
+		req.Header.Add(key, template.interpolate(value))
 	}
 
 	return client.Do(req)

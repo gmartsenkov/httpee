@@ -9,6 +9,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/samber/lo"
+	"github.com/valyala/fasttemplate"
 )
 
 type Template struct {
@@ -25,6 +26,11 @@ func (t *Template) normalisedVariables() map[string]any {
 	}
 
 	return result
+}
+
+func (t *Template) interpolate(str string) string {
+	engine := fasttemplate.New(str, "{{", "}}")
+	return engine.ExecuteString(t.normalisedVariables())
 }
 
 func (t *Template) parse(reader io.Reader, conf *Config) error {

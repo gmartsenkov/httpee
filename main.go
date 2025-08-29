@@ -10,7 +10,6 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/samber/lo"
-	"github.com/valyala/fasttemplate"
 	"strings"
 )
 
@@ -144,9 +143,4 @@ func log_response(resp *http.Response, cmd *Cmd) {
 		fmt.Println("Body:")
 		fmt.Println(string(body))
 	}
-}
-
-func runTemplate(temp string, template *Template) string {
-	t := fasttemplate.New(temp, "{{", "}}")
-	return t.ExecuteString(template.normalisedVariables())
 }
