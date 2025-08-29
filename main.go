@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/samber/lo"
 	"github.com/valyala/fasttemplate"
 	"strings"
@@ -24,74 +23,60 @@ var CLI struct {
 }
 
 func main() {
-	file, err := os.ReadFile("httpee.toml")
+	file, err := os.Open("httpee.toml")
 	if err != nil {
 		fmt.Println("Config file `httpee.toml` not found")
 		os.Exit(1)
 	}
 
 	var cfg Config
-	err = toml.Unmarshal(file, &cfg)
+	err = cfg.parse(file)
+
 	if err != nil {
-		fmt.Println("Failed to parse httpee.toml")
+		fmt.Println("Failed to parse httpee.toml", err)
 		os.Exit(1)
 	}
 
 	for _, filePath := range cfg.AdditionalConfigs {
-		file, err := os.ReadFile(filePath)
+		file, err := os.Open(filePath)
 		if err != nil {
 			continue
 		}
 
-		var newCfg Config
-		err = toml.Unmarshal(file, &newCfg)
+		var additionalCfg Config
+		err = additionalCfg.parse(file)
 		if err != nil {
-			fmt.Println("Failed to parse ", filePath)
+			fmt.Println("Failed to parse ", filePath, err)
 			os.Exit(1)
 		}
 
-		cfg.merge(&newCfg)
+		cfg.merge(&additionalCfg)
 	}
 
-	filePaths := []string{}
-
-	for _, dir := range cfg.Dirs {
-		dir_entries, err := os.ReadDir(dir)
-
+	filePaths := lo.FlatMap(cfg.Dirs, func(dir string, _ int) []string {
+		templates, _ := findTemplates(dir)
 		if err != nil {
 			fmt.Printf("Failed to access %s directory\r", dir)
 			os.Exit(1)
 		}
 
-		for _, entry := range dir_entries {
-			if !strings.HasSuffix(entry.Name(), ".toml") {
-				continue
-			}
-			filepath := filepath.Join(dir, entry.Name())
-			filePaths = append(filePaths, filepath)
-		}
-	}
+		return templates
+	})
 
 	templates := make(map[string]Template)
 	for _, filePath := range filePaths {
 		fileName :=
 			strings.TrimSuffix(filePath, filepath.Ext(filePath))
 
-		file, err := os.ReadFile(filePath)
+		file, err := os.Open(filePath)
 		if err != nil {
 			fmt.Printf("Failed to read file %s", filePath)
 			os.Exit(1)
 		}
 
 		var template Template
-		err = toml.Unmarshal([]byte(file), &template)
-		if err != nil {
-			fmt.Printf("Failed to parse '%s' \n", filePath)
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		template.parse(file, &cfg)
 
-		template.Variables = lo.Assign(template.Variables, cfg.Variables)
 		templates[fileName] = template
 	}
 
