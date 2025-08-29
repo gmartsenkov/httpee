@@ -77,6 +77,7 @@ func main() {
 		err = template.parse(file, &cfg)
 		if err != nil {
 			fmt.Println("Failed to parse ", filePath, err)
+			os.Exit(1)
 		}
 
 		templates[fileName] = template
