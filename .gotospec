@@ -1,0 +1,11 @@
+{
+  "language_configs": {
+    "go": {
+      "primary_source_dirs": [""],
+      "test_file_suffix": "_test",
+      "test_file_matcher": "_test.go",
+      "test_folder":  "",
+      "omit_source_dir_from_test_dir": true
+    }
+  }
+}
