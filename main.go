@@ -116,13 +116,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	startTime := time.Now()
-	resp, err := make_request(&template)
+	client := http.DefaultClient
+	req, err := template.newHttpRequest()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	startTime := time.Now()
+	resp, err := client.Do(req)
 	responseTime := time.Since(startTime).Milliseconds()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	log_response(resp, command)
 	fmt.Printf("Response time: %d ms\n", responseTime)
 }

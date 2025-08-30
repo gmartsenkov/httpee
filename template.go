@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +19,32 @@ type Template struct {
 	Description string
 	Variables   map[string]any
 	Request     Request
+}
+
+type Request struct {
+	Url     string
+	Method  string
+	Body    string
+	Headers map[string]string
+}
+
+func (t *Template) newHttpRequest() (*http.Request, error) {
+	body := t.interpolate(t.Request.Body)
+	req, err := http.NewRequest(
+		t.Request.Method,
+		t.interpolate(t.Request.Url),
+		bytes.NewReader([]byte(body)),
+	)
+
+	if err != nil {
+		return req, err
+	}
+
+	for key, value := range t.Request.Headers {
+		req.Header.Add(key, t.interpolate(value))
+	}
+
+	return req, nil
 }
 
 func (t *Template) normalisedVariables() map[string]any {
