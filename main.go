@@ -21,6 +21,14 @@ type Cmd struct {
 var CLI struct {
 }
 
+var Httpee = []kong.Option{
+	kong.Name("HTTPEE"),
+	kong.Description("Easy HTTP-ee client"),
+	kong.UsageOnError(),
+	kong.ConfigureHelp(kong.HelpOptions{
+		Compact: true,
+	})}
+
 func main() {
 	file, err := os.Open("httpee.toml")
 	if err != nil {
@@ -94,15 +102,7 @@ func main() {
 		commands[fileName] = &cmd
 	}
 
-	options := []kong.Option{
-		kong.Name("HTTPEE"),
-		kong.Description("Easy HTTP-ee client"),
-		kong.UsageOnError(),
-		kong.ConfigureHelp(kong.HelpOptions{
-			Compact: true,
-		})}
-
-	ctx := kong.Parse(&CLI, append(options, kongCommands...)...)
+	ctx := kong.Parse(&CLI, append(Httpee, kongCommands...)...)
 	cmd := ctx.Command()
 
 	template, found := templates[cmd]

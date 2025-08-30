@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeConfig(t *testing.T) {
@@ -29,4 +31,28 @@ func TestMergeConfig(t *testing.T) {
 				"token": "override",
 			},
 		})
+}
+
+func TestParseConfig(t *testing.T) {
+	content := `
+        dirs = ["example"]
+        additional-configs = ["httpee.local.toml"]
+
+        [variables]
+        id = 5
+        token = "123"
+        `
+
+	var config Config
+	reader := strings.NewReader(content)
+
+	assert.Nil(t, config.parse(reader))
+	assert.Equal(t, config, Config{
+		Dirs:              []string{"example"},
+		AdditionalConfigs: []string{"httpee.local.toml"},
+		Variables: map[string]any{
+			"id":    int64(5),
+			"token": "123",
+		},
+	})
 }

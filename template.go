@@ -44,7 +44,7 @@ func (t *Template) parse(reader io.Reader, conf *Config) error {
 		return err
 	}
 
-	t.Variables = lo.Assign(t.Variables, conf.Variables)
+	t.Variables = lo.Assign(conf.Variables, t.Variables)
 
 	return nil
 }
