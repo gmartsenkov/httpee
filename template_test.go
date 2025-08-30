@@ -68,3 +68,26 @@ func TestTemplateParse(t *testing.T) {
 		},
 	})
 }
+
+func TestTemplateNewHttpRequest(t *testing.T) {
+	template := Template{
+		Request: Request{
+			Url:    "http://example.com/{{id}}",
+			Method: "POST",
+			Body:   `{ "id": "{{id}}"}`,
+			Headers: map[string]string{
+				"Authentication": "Bearer {{token}}",
+			},
+		},
+		Variables: map[string]any{
+			"id":    100,
+			"token": "secret",
+		},
+	}
+
+	request, err := template.newHttpRequest()
+	assert.Nil(t, err)
+	assert.Equal(t, request.URL.String(), "http://example.com/100")
+	assert.Equal(t, request.Method, "POST")
+	assert.Equal(t, request.Header.Get("Authentication"), "Bearer secret")
+}
