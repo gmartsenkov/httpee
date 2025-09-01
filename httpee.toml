@@ -1,4 +1,4 @@
-dirs = ["example"]
+dirs = ["example/users"]
 additional-configs = ["httpee.local.toml"]
 
 [variables]
