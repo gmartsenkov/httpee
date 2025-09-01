@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -87,7 +88,11 @@ func TestTemplateNewHttpRequest(t *testing.T) {
 
 	request, err := template.newHttpRequest()
 	assert.Nil(t, err)
+	body, err := io.ReadAll(request.Body)
+	assert.Nil(t, err)
+
 	assert.Equal(t, request.URL.String(), "http://example.com/100")
 	assert.Equal(t, request.Method, "POST")
+	assert.Equal(t, body, []byte(`{ "id": "100"}`))
 	assert.Equal(t, request.Header.Get("Authentication"), "Bearer secret")
 }
