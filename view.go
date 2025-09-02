@@ -137,7 +137,12 @@ func selectedUpdate(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case responseMessage:
 		m.response = &msg
-		m.responseViewPort.SetContent(string(msg.body))
+		responseBody := highlightBody(
+			msg.response.Header.Get("Content-Type"),
+			msg.body,
+		)
+		m.responseViewPort.SetContent(responseBody)
+
 	case tea.WindowSizeMsg:
 		h, v := selectedStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
@@ -223,6 +228,8 @@ func renderResponse(m *model) string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		("Status: " + response.Status),
+		"Headers:",
+		lipgloss.JoinVertical(lipgloss.Left, sortedHeader(response.Header)...),
 		"Body:",
 		m.responseViewPort.View(),
 	)
