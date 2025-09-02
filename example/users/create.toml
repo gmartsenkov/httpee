@@ -1,5 +1,5 @@
-name = "Users"
-description = "Create user endpoint"
+name = "Users - Create"
+description = "Create an individual user"
 
 [variables]
 id = 100

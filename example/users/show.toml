@@ -1,5 +1,5 @@
-name = "Users"
-description = "Show user endpoint"
+name = "Users - Show"
+description = "Show an individual user"
 
 [variables]
 id = "1"

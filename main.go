@@ -2,13 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/alecthomas/kong"
 	"github.com/samber/lo"
 	"strings"
 )
@@ -20,14 +16,6 @@ type Cmd struct {
 
 var CLI struct {
 }
-
-var Httpee = []kong.Option{
-	kong.Name("HTTPEE"),
-	kong.Description("Easy HTTP-ee client"),
-	kong.UsageOnError(),
-	kong.ConfigureHelp(kong.HelpOptions{
-		Compact: true,
-	})}
 
 func main() {
 	file, err := os.Open("httpee.toml")
@@ -91,68 +79,10 @@ func main() {
 		templates[fileName] = template
 	}
 
-	var kongCommands []kong.Option
-	commands := make(map[string]*Cmd)
-
-	for fileName, template := range templates {
-		var cmd Cmd
-
-		one := kong.DynamicCommand(fileName, template.Description, template.Name, &cmd)
-		kongCommands = append(kongCommands, one)
-		commands[fileName] = &cmd
-	}
-
-	ctx := kong.Parse(&CLI, append(Httpee, kongCommands...)...)
-	cmd := ctx.Command()
-
-	template, found := templates[cmd]
-	if !found {
-		fmt.Println(cmd)
-	}
-
-	command, found := commands[cmd]
-	if !found {
-		fmt.Println(cmd)
+	lo.Values(templates)
+	p := program(lo.Values(templates))
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error running program:", err)
 		os.Exit(1)
-	}
-
-	client := http.DefaultClient
-	req, err := template.newHttpRequest()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	startTime := time.Now()
-	resp, err := client.Do(req)
-	responseTime := time.Since(startTime).Milliseconds()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	log_response(resp, command)
-	fmt.Printf("Response time: %d ms\n", responseTime)
-}
-
-func log_response(resp *http.Response, cmd *Cmd) {
-	fmt.Println(resp.Request.Method, resp.Request.URL)
-	fmt.Println("Status:", resp.Status)
-
-	if cmd.ShowHeaders {
-		for k, v := range resp.Header {
-			value := strings.Join(v[:], ",")
-			fmt.Printf("%s: %s\n", k, value)
-		}
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-
-	if len(body) > 0 {
-		fmt.Println("Body:")
-		fmt.Println(string(body))
 	}
 }
