@@ -19,6 +19,8 @@ import (
 var (
 	docStyle      = lipgloss.NewStyle().Margin(1, 2)
 	selectedStyle = lipgloss.NewStyle().Padding(0, 3)
+	boldStyle     = lipgloss.NewStyle().Bold(true)
+	topBorder     = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), true, false, false).Width(60)
 	subtleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#7A7573")).Italic(true)
 )
 
@@ -95,6 +97,7 @@ type model struct {
 	help             help.Model
 	list             list.Model
 	width            int
+	height           int
 	stopwatch        stopwatch.Model
 	selected         *item
 	response         *responseMessage
@@ -148,6 +151,7 @@ func selectedUpdate(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetSize(msg.Width-h, msg.Height-v)
 		m.responseViewPort.Width = msg.Width - h
 		m.width = msg.Width - h
+		m.height = msg.Height - v
 	}
 
 	var stopwatchCmd tea.Cmd
@@ -208,7 +212,7 @@ func (m model) View() string {
 				Render("Elapsed: " + m.stopwatch.View())
 		}
 
-		return selectedStyle.Width(m.width).Render(
+		return selectedStyle.Width(m.width).Height(m.height).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				renderTemplate(m.selected),
@@ -227,10 +231,10 @@ func renderResponse(m *model) string {
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		("Status: " + response.Status),
-		"Headers:",
+		topBorder.Render(boldStyle.Render("Status: ")+response.Status),
+		topBorder.Bold(true).Render("Headers\n"),
 		lipgloss.JoinVertical(lipgloss.Left, sortedHeader(response.Header)...),
-		"Body:",
+		topBorder.Render("Body:"),
 		m.responseViewPort.View(),
 	)
 }
@@ -269,13 +273,20 @@ func renderTemplate(i *item) string {
 		Foreground(lipgloss.Color("#B2BEB5")).
 		Border(lipgloss.NormalBorder(), true, false, false)
 
-	return st.Render(lipgloss.JoinVertical(
-		lipgloss.Left,
-		header,
-		bodyStyle.Render(lipgloss.JoinVertical(lipgloss.Left, reqHeaders...)),
-		bodyStyle.Render(strings.TrimSpace(string(body))),
-	))
+	components := []string{header}
+
+	if len(reqHeaders) > 0 {
+		str := bodyStyle.Render(lipgloss.JoinVertical(lipgloss.Left, reqHeaders...))
+		components = append(components, str)
+	}
+	if string(body) != "" {
+		str := bodyStyle.Render(strings.TrimSpace(string(body)))
+		components = append(components, str)
+	}
+
+	return st.Render(lipgloss.JoinVertical(lipgloss.Left, components...))
 }
+
 func program(templates []Template) *tea.Program {
 	items := lo.Map(templates, func(t Template, _ int) list.Item {
 		return item{template: &t}

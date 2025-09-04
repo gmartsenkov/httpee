@@ -18,7 +18,7 @@ func sortedHeader(headers http.Header) []string {
 
 	for _, key := range keys {
 		value := headers.Get(key)
-		str := fmt.Sprintf("\"%s\": \"%s\"", key, value)
+		str := fmt.Sprintf("%s: \"%s\"", key, value)
 		result = append(result, str)
 	}
 
