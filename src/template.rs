@@ -33,11 +33,9 @@ fn default_method() -> String {
 }
 
 impl Template {
-    pub fn load(path: &Path, config: &Config) -> Result<Self, String> {
-        let content = fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-        let mut template: Template = toml::from_str(&content)
-            .map_err(|e| format!("Failed to parse {}: {}", path.display(), e))?;
+    pub fn parse(content: &str, config: &Config) -> Result<Self, String> {
+        let mut template: Template =
+            toml::from_str(content).map_err(|e| format!("Failed to parse template: {e}"))?;
 
         let mut merged = config.variables.clone();
         for (key, value) in &template.variables {
@@ -46,6 +44,12 @@ impl Template {
         template.variables = merged;
 
         Ok(template)
+    }
+
+    pub fn load(path: &Path, config: &Config) -> Result<Self, String> {
+        let content = fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+        Self::parse(&content, config)
     }
 
     pub fn apply_overrides(&mut self, overrides: &[(String, String)]) {
@@ -120,4 +124,151 @@ pub fn discover_templates(dirs: &[String]) -> Vec<(String, PathBuf)> {
     templates.sort_by(|a, b| a.0.cmp(&b.0));
     templates.dedup_by(|a, b| a.1 == b.1);
     templates
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEMPLATE_TOML: &str = r#"
+        name = "Users - Create"
+        description = "Create an individual user"
+
+        [variables]
+        id = 100
+        token = "123"
+
+        [request]
+        url = "https://httpbin.org/anything/{{id}}"
+        method = "POST"
+        body = '{"id": "{{id}}", "secret": "{{secret}}"}'
+
+        [request.headers]
+        content-type = "application/json"
+        authorization = "Bearer {{token}}"
+    "#;
+
+    fn empty_config() -> Config {
+        Config::default()
+    }
+
+    fn config_with_variables() -> Config {
+        Config::parse(
+            r#"
+            [variables]
+            id = "5"
+            token = "global-token"
+            secret = "global-secret"
+            "#,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn parse_template() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+
+        assert_eq!(tmpl.name, "Users - Create");
+        assert_eq!(tmpl.description, "Create an individual user");
+        assert_eq!(tmpl.request.url, "https://httpbin.org/anything/{{id}}");
+        assert_eq!(tmpl.request.method, "POST");
+        assert_eq!(tmpl.request.headers["content-type"], "application/json");
+    }
+
+    #[test]
+    fn parse_template_defaults_method_to_get() {
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+
+        assert_eq!(tmpl.request.method, "GET");
+    }
+
+    #[test]
+    fn template_variables_override_config() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &config_with_variables()).unwrap();
+
+        assert_eq!(tmpl.variables["id"], toml::Value::Integer(100));
+        assert_eq!(tmpl.variables["token"], toml::Value::String("123".into()));
+        assert_eq!(
+            tmpl.variables["secret"],
+            toml::Value::String("global-secret".into())
+        );
+    }
+
+    #[test]
+    fn apply_overrides() {
+        let mut tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+
+        tmpl.apply_overrides(&[
+            ("id".into(), "999".into()),
+            ("new_var".into(), "hello".into()),
+        ]);
+
+        assert_eq!(tmpl.variables["id"], toml::Value::String("999".into()));
+        assert_eq!(
+            tmpl.variables["new_var"],
+            toml::Value::String("hello".into())
+        );
+    }
+
+    #[test]
+    fn build_request_interpolates_url() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.url().as_str(), "https://httpbin.org/anything/100");
+    }
+
+    #[test]
+    fn build_request_interpolates_headers() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.headers()["authorization"], "Bearer 123");
+        assert_eq!(req.headers()["content-type"], "application/json");
+    }
+
+    #[test]
+    fn build_request_interpolates_body() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &config_with_variables()).unwrap();
+        let req = tmpl.build_request().unwrap();
+        let body = req.body().unwrap().as_bytes().unwrap();
+
+        assert_eq!(
+            String::from_utf8_lossy(body),
+            r#"{"id": "100", "secret": "global-secret"}"#
+        );
+    }
+
+    #[test]
+    fn build_request_sets_method() {
+        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.method(), "POST");
+    }
+
+    #[test]
+    fn interpolate_integer_variables() {
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            count = 42
+
+            [request]
+            url = "http://example.com/{{count}}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.url().as_str(), "http://example.com/42");
+    }
 }
