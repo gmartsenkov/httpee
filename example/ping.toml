@@ -1,0 +1,6 @@
+name = "Example.com"
+
+[request]
+url = "http://example.com"
+method = "GET"
+

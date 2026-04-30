@@ -1,0 +1,14 @@
+name = "Users - Show"
+description = "Show an individual user"
+
+[variables]
+id = "1"
+token = "123"
+
+[request]
+url = "https://httpbin.org/anything/{{id}}"
+method = "GET"
+
+[request.headers]
+content-type = "application/json"
+authorization = "Bearer {{token}}"

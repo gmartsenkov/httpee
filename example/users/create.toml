@@ -1,0 +1,25 @@
+name = "Users - Create"
+description = "Create an individual user"
+
+[variables]
+id = 100
+token = "123"
+
+[request]
+url = "https://httpbin.org/anything/{{id}}"
+method = "POST"
+body = """
+{
+  "data": {
+    "attributes": {
+      "name": "Bob",
+      "id": "{{id}}",
+      "secret": "{{secret}}"
+    }
+  }
+}
+"""
+
+[request.headers]
+content-type = "application/json"
+authorization = "Bearer {{token}}"
