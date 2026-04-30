@@ -48,3 +48,29 @@ fn content_type_to_syntax(content_type: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn content_type_to_syntax_mapping() {
+        let cases: &[(&str, Option<&str>)] = &[
+            ("application/json", Some("json")),
+            ("application/json; charset=utf-8", Some("json")),
+            ("text/html", Some("html")),
+            ("application/xml", Some("xml")),
+            ("text/xml", Some("xml")),
+            ("text/plain", None),
+            ("", None),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(
+                content_type_to_syntax(input),
+                *expected,
+                "content_type_to_syntax({input:?})"
+            );
+        }
+    }
+}
