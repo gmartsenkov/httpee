@@ -4,6 +4,9 @@ use std::fs;
 use std::path::Path;
 
 pub const DEFAULT_CONFIG: &str = r#"dirs = []
+additional-configs = [
+    # "httpee.local.toml"
+]
 
 [variables]
 "#;
