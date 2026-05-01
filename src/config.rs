@@ -3,6 +3,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+pub const DEFAULT_CONFIG: &str = r#"dirs = []
+
+[variables]
+"#;
+
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]

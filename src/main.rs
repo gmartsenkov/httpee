@@ -2,14 +2,18 @@ mod config;
 mod highlight;
 mod template;
 
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process;
 
 #[derive(Parser)]
 #[command(name = "httpee", about = "Run HTTP requests from TOML templates")]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+
     /// Template name to execute (e.g. users/create)
     #[arg(add = ArgValueCompleter::new(complete_templates))]
     template: Option<String>,
@@ -35,6 +39,12 @@ struct Cli {
     no_color: bool,
 }
 
+#[derive(Subcommand)]
+enum Command {
+    /// Create a default httpee.toml file in the current directory
+    Init,
+}
+
 fn parse_key_value(s: &str) -> Result<(String, String), String> {
     let pos = s
         .find('=')
@@ -56,6 +66,15 @@ fn complete_templates(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
 fn main() {
     clap_complete::CompleteEnv::with_factory(Cli::command).complete();
     let cli = Cli::parse();
+    if let Some(Command::Init) = cli.command {
+        init_config();
+        return;
+    }
+    if !Path::new("httpee.toml").exists() {
+        Cli::command().print_help().ok();
+        println!();
+        process::exit(1);
+    }
     let mut cfg = load_config();
     merge_additional_configs(&mut cfg);
     let templates = template::discover_templates(&cfg.dirs);
@@ -73,6 +92,19 @@ fn main() {
     tmpl.apply_overrides(&cli.overrides);
     let response = execute_request(&tmpl);
     print_response(response, &cli);
+}
+
+fn init_config() {
+    let path = Path::new("httpee.toml");
+    if path.exists() {
+        eprintln!("httpee.toml already exists");
+        process::exit(1);
+    }
+    if let Err(e) = fs::write(path, config::DEFAULT_CONFIG) {
+        eprintln!("Failed to write httpee.toml: {e}");
+        process::exit(1);
+    }
+    println!("Created httpee.toml");
 }
 
 fn load_config() -> config::Config {
@@ -103,8 +135,9 @@ fn merge_additional_configs(cfg: &mut config::Config) {
 
 fn list_templates(templates: &[(String, PathBuf)], cfg: &config::Config) {
     if templates.is_empty() {
-        eprintln!("No templates found");
-        process::exit(1);
+        Cli::command().print_help().ok();
+        println!();
+        return;
     }
     for (i, (name, path)) in templates.iter().enumerate() {
         if i > 0 {
