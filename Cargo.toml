@@ -2,6 +2,10 @@
 name = "httpee"
 version = "0.1.0"
 edition = "2021"
+description = "Run HTTP requests from TOML templates"
+homepage = "https://github.com/gmartsenkov/httpee"
+repository = "https://github.com/gmartsenkov/httpee"
+license = "MIT"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -11,3 +15,8 @@ reqwest = { version = "0.12", features = ["blocking"] }
 syntect = "5"
 minijinja = "2"
 clap_complete = { version = "4", features = ["unstable-dynamic"] }
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
