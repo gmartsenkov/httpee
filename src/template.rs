@@ -1,3 +1,4 @@
+use minijinja::Environment;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
@@ -60,7 +61,7 @@ impl Template {
     }
 
     pub fn build_request(&self) -> Result<reqwest::blocking::Request, String> {
-        let url = self.interpolate(&self.request.url);
+        let url = self.render(&self.request.url)?;
         let method: reqwest::Method = self
             .request
             .method
@@ -70,13 +71,13 @@ impl Template {
         let client = reqwest::blocking::Client::new();
         let mut builder = client.request(method, &url);
 
-        let body = self.interpolate(&self.request.body);
+        let body = self.render(&self.request.body)?;
         if !body.is_empty() {
             builder = builder.body(body);
         }
 
         for (key, value) in &self.request.headers {
-            builder = builder.header(key, self.interpolate(value));
+            builder = builder.header(key, self.render(value)?);
         }
 
         builder
@@ -84,25 +85,27 @@ impl Template {
             .map_err(|e| format!("Failed to build request: {e}"))
     }
 
-    fn interpolate(&self, s: &str) -> String {
-        let mut result = s.to_string();
-        for (key, value) in &self.variables {
-            let placeholder = format!("{{{{{key}}}}}");
-            let string_value = toml_value_to_string(value);
-            result = result.replace(&placeholder, &string_value);
-        }
-        result
+    fn render(&self, source: &str) -> Result<String, String> {
+        let env = build_env();
+        env.render_str(source, &self.variables)
+            .map_err(|e| format!("Template rendering failed: {e}"))
     }
 }
 
-fn toml_value_to_string(value: &toml::Value) -> String {
-    match value {
-        toml::Value::String(s) => s.clone(),
-        toml::Value::Integer(i) => i.to_string(),
-        toml::Value::Float(f) => f.to_string(),
-        toml::Value::Boolean(b) => b.to_string(),
-        other => other.to_string(),
-    }
+fn build_env() -> Environment<'static> {
+    let mut env = Environment::new();
+    env.set_auto_escape_callback(|_| minijinja::AutoEscape::None);
+    env.add_function("env", env_function);
+    env
+}
+
+fn env_function(name: String) -> Result<String, minijinja::Error> {
+    std::env::var(&name).map_err(|_| {
+        minijinja::Error::new(
+            minijinja::ErrorKind::InvalidOperation,
+            format!("environment variable '{name}' is not set"),
+        )
+    })
 }
 
 pub fn discover_templates(dirs: &[String]) -> Vec<(String, PathBuf)> {
@@ -252,6 +255,56 @@ mod tests {
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.method(), "POST");
+    }
+
+    #[test]
+    fn interpolate_env_variable() {
+        std::env::set_var("HTTPEE_TEST_VAR", "from_env");
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com/{{ env('HTTPEE_TEST_VAR') }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.url().as_str(), "http://example.com/from_env");
+    }
+
+    #[test]
+    fn interpolate_env_variable_missing_errors() {
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com/{{ env('HTTPEE_MISSING_VAR_XYZZY') }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert!(err.contains("HTTPEE_MISSING_VAR_XYZZY"));
+    }
+
+    #[test]
+    fn interpolate_mixed_vars_and_env() {
+        std::env::set_var("HTTPEE_TEST_TOKEN", "env_token");
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            id = 42
+
+            [request]
+            url = "http://example.com/{{ id }}/{{ env('HTTPEE_TEST_TOKEN') }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.url().as_str(), "http://example.com/42/env_token");
     }
 
     #[test]

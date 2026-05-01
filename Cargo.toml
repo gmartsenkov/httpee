@@ -9,3 +9,4 @@ toml = "0.8"
 serde = { version = "1", features = ["derive"] }
 reqwest = { version = "0.12", features = ["blocking"] }
 syntect = "5"
+minijinja = "2"
