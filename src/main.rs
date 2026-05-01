@@ -2,7 +2,8 @@ mod config;
 mod highlight;
 mod template;
 
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
 use std::path::{Path, PathBuf};
 use std::process;
 
@@ -10,6 +11,7 @@ use std::process;
 #[command(name = "httpee", about = "Run HTTP requests from TOML templates")]
 struct Cli {
     /// Template name to execute (e.g. users/create)
+    #[arg(add = ArgValueCompleter::new(complete_templates))]
     template: Option<String>,
 
     /// Variable overrides in key=value format
@@ -40,7 +42,19 @@ fn parse_key_value(s: &str) -> Result<(String, String), String> {
     Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
 }
 
+fn complete_templates(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
+    let current = current.to_str().unwrap_or("");
+    let cfg = config::Config::load(Path::new("httpee.toml")).unwrap_or_default();
+    let templates = template::discover_templates(&cfg.dirs);
+    templates
+        .into_iter()
+        .filter(|(name, _)| name.starts_with(current))
+        .map(|(name, _)| CompletionCandidate::new(name))
+        .collect()
+}
+
 fn main() {
+    clap_complete::CompleteEnv::with_factory(Cli::command).complete();
     let cli = Cli::parse();
     let mut cfg = load_config();
     merge_additional_configs(&mut cfg);

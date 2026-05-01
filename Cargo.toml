@@ -10,3 +10,4 @@ serde = { version = "1", features = ["derive"] }
 reqwest = { version = "0.12", features = ["blocking"] }
 syntect = "5"
 minijinja = "2"
+clap_complete = { version = "4", features = ["unstable-dynamic"] }
