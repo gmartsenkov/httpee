@@ -120,11 +120,17 @@ httpee uses [minijinja](https://github.com/mitsuhiko/minijinja) for variable int
 url = "https://api.example.com/users/{{id}}"
 ```
 
-Access environment variables with the `env()` function:
+### Built-in functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `env(name)` | Read an environment variable. Errors if unset. | `{{ env('API_TOKEN') }}` |
+| `bearer(token)` | Format a bearer auth header value. | `{{ bearer(token) }}` → `Bearer <token>` |
+| `basic(user, pass)` | Format a basic auth header value (base64-encoded). | `{{ basic(user, pass) }}` → `Basic <base64>` |
 
 ```toml
 [request.headers]
-authorization = "Bearer {{ env('API_TOKEN') }}"
+authorization = "{{ bearer(env('API_TOKEN')) }}"
 ```
 
 ### Variable resolution order

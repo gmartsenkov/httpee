@@ -22,4 +22,4 @@ body = """
 
 [request.headers]
 content-type = "application/json"
-authorization = "Bearer {{token}}"
+authorization = "{{ basic('bob', 'pass') }}"

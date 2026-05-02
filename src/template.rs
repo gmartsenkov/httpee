@@ -96,16 +96,44 @@ fn build_env() -> Environment<'static> {
     let mut env = Environment::new();
     env.set_auto_escape_callback(|_| minijinja::AutoEscape::None);
     env.add_function("env", env_function);
+    env.add_function("bearer", bearer_function);
+    env.add_function("basic", basic_function);
     env
 }
 
-fn env_function(name: String) -> Result<String, minijinja::Error> {
-    std::env::var(&name).map_err(|_| {
-        minijinja::Error::new(
-            minijinja::ErrorKind::InvalidOperation,
-            format!("environment variable '{name}' is not set"),
-        )
-    })
+fn arg_error(msg: &str) -> minijinja::Error {
+    minijinja::Error::new(minijinja::ErrorKind::InvalidOperation, msg.to_string())
+}
+
+fn env_function(name: Option<String>) -> Result<String, minijinja::Error> {
+    let name = name.ok_or_else(|| {
+        arg_error("env() requires 1 argument: the variable name — e.g. {{ env('API_TOKEN') }}")
+    })?;
+    std::env::var(&name)
+        .map_err(|_| arg_error(&format!("environment variable '{name}' is not set")))
+}
+
+fn bearer_function(token: Option<String>) -> Result<String, minijinja::Error> {
+    let token = token.ok_or_else(|| {
+        arg_error("bearer() requires 1 argument: the token — e.g. {{ bearer(token) }}")
+    })?;
+    Ok(format!("Bearer {token}"))
+}
+
+fn basic_function(
+    username: Option<String>,
+    password: Option<String>,
+) -> Result<String, minijinja::Error> {
+    let (username, password) = match (username, password) {
+        (Some(u), Some(p)) => (u, p),
+        _ => return Err(arg_error(
+            "basic() requires 2 arguments: username and password — e.g. {{ basic(user, pass) }}",
+        )),
+    };
+    use base64::Engine;
+    let encoded =
+        base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
+    Ok(format!("Basic {encoded}"))
 }
 
 pub fn discover_templates(dirs: &[String]) -> Vec<(String, PathBuf)> {
@@ -305,6 +333,103 @@ mod tests {
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.url().as_str(), "http://example.com/42/env_token");
+    }
+
+    #[test]
+    fn bearer_helper() {
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            token = "abc123"
+
+            [request]
+            url = "http://example.com"
+
+            [request.headers]
+            authorization = "{{ bearer(token) }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        assert_eq!(req.headers()["authorization"], "Bearer abc123");
+    }
+
+    #[test]
+    fn basic_helper() {
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            user = "alice"
+            pass = "s3cret"
+
+            [request]
+            url = "http://example.com"
+
+            [request.headers]
+            authorization = "{{ basic(user, pass) }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let req = tmpl.build_request().unwrap();
+
+        // base64("alice:s3cret") = "YWxpY2U6czNjcmV0"
+        assert_eq!(req.headers()["authorization"], "Basic YWxpY2U6czNjcmV0");
+    }
+
+    #[test]
+    fn bearer_helper_missing_argument_errors_clearly() {
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com"
+
+            [request.headers]
+            authorization = "{{ bearer() }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert!(
+            err.contains("bearer()"),
+            "error should name the function: {err}"
+        );
+        assert!(
+            err.contains("token"),
+            "error should hint the argument: {err}"
+        );
+    }
+
+    #[test]
+    fn basic_helper_missing_argument_errors_clearly() {
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            user = "alice"
+
+            [request]
+            url = "http://example.com"
+
+            [request.headers]
+            authorization = "{{ basic(user) }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert!(
+            err.contains("basic()"),
+            "error should name the function: {err}"
+        );
+        assert!(
+            err.contains("password"),
+            "error should hint the argument: {err}"
+        );
     }
 
     #[test]
