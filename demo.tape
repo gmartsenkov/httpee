@@ -12,9 +12,9 @@ Set Theme "Catppuccin Mocha"
 Set Padding 20
 Set TypingSpeed 60ms
 
-# Make ./target/release available as `httpee` and clear the prompt
+# Make ./target/release available as `httpee`, cd into the example project, clear
 Hide
-Type "export PATH=$PWD/target/release:$PATH && clear"
+Type "export PATH=$PWD/target/release:$PATH && cd example && clear"
 Enter
 Sleep 400ms
 Show
@@ -28,7 +28,7 @@ Type "clear"
 Enter
 Sleep 200ms
 
-Type "httpee --verbose example/ping"
+Type "httpee --verbose health/ping"
 Sleep 500ms
 Enter
 Sleep 3000ms
@@ -37,7 +37,7 @@ Type "clear"
 Enter
 Sleep 200ms
 
-Type "httpee example/users/sho"
+Type "httpee users/sho"
 Sleep 500ms
 Enter
 Sleep 2000ms

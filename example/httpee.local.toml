@@ -1,4 +1,5 @@
-dirs = ["example/accounts"]
+dirs = ["accounts"]
+
 [variables]
 id = "bob"
 token = "override"
