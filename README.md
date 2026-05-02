@@ -1,11 +1,6 @@
 A lightweight, terminal-native HTTP client for developers who'd rather not run Postman. Requests live as plain TOML files alongside your code, so they version, diff, and review like everything else in the repo.
 
-```
-$ httpee
-  ❯ accounts/list    List accounts in this org
-  ❯ users/create     POST a new user
-  ❯ users/show       GET a user by id
-```
+![httpee demo](https://github.com/gmartsenkov/httpee/raw/master/docs/assets/demo.gif)
 
 ## Quick start
 
