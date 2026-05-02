@@ -1,0 +1,242 @@
+/*
+ * Oxocarbon (Nyoom Engineering) — custom oranda theme overrides.
+ * Layered on top of the built-in `dark` theme.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Oxocarbon dark palette */
+  --oxo-bg:        #161616;
+  --oxo-bg-alt:    #131313;
+  --oxo-surface0:  #262626;
+  --oxo-surface1:  #393939;
+  --oxo-surface2:  #525252;
+
+  --oxo-fg:        #f2f4f8;
+  --oxo-fg-dim:    #dde1e6;
+  --oxo-fg-muted:  #b6b8bb;
+
+  --oxo-blue:      #33b1ff;
+  --oxo-cyan:      #3ddbd9;
+  --oxo-purple:    #be95ff;
+  --oxo-magenta:   #ff7eb6;
+  --oxo-green:     #42be65;
+  --oxo-yellow:    #ffe97b;
+  --oxo-red:       #ee5396;
+  --oxo-orange:    #f57070;
+}
+
+/* Map oranda's dark theme tokens onto oxocarbon */
+.dark {
+  --dark-bg-color:              var(--oxo-bg);
+  --dark-fg-color:              var(--oxo-fg);
+  --dark-link-color:            var(--oxo-purple);
+  --dark-highlight-bg-color:    var(--oxo-surface0);
+  --dark-highlight-fg-color:    var(--oxo-fg);
+
+  --bg-color:                   var(--oxo-bg);
+  --fg-color:                   var(--oxo-fg);
+  --link-color:                 var(--oxo-purple);
+  --highlight-bg-color:         var(--oxo-surface0);
+  --highlight-fg-color:         var(--oxo-fg);
+
+  --font-face: "IBM Plex Sans", "Fira Sans", system-ui, sans-serif;
+}
+
+/* NOTE: not wrapping in @layer overrides — the base oranda CSS has no layer
+   declarations, so any layered rule loses to the base regardless of specificity. */
+.dark body {
+    background-color: var(--oxo-bg);
+    color: var(--oxo-fg);
+    font-family: "IBM Plex Sans", "Fira Sans", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    color: var(--oxo-fg);
+    font-family: "IBM Plex Sans", "Fira Sans", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .dark h1 { color: var(--oxo-fg); }
+  .dark h2 { color: var(--oxo-fg); border-bottom: 1px solid var(--oxo-surface1); padding-bottom: 0.25em; }
+  .dark h3 { color: var(--oxo-fg-dim); }
+
+  /* Links */
+  .dark a {
+    color: var(--oxo-purple);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+  }
+  .dark a:hover {
+    color: var(--oxo-magenta);
+    border-bottom-color: var(--oxo-magenta);
+  }
+
+  /* Code */
+  .dark code,
+  .dark pre,
+  .dark kbd,
+  .dark samp,
+  .dark tt {
+    font-family: "JetBrains Mono", ui-monospace, "Fira Code", monospace;
+    font-variant-ligatures: contextual;
+  }
+
+  .dark :not(pre) > code {
+    background-color: var(--oxo-surface0);
+    color: var(--oxo-cyan);
+    border-radius: 4px;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.9em;
+  }
+
+  .dark pre {
+    background-color: var(--oxo-bg-alt);
+    border: 1px solid var(--oxo-surface0);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .dark pre code {
+    background: transparent;
+    color: var(--oxo-fg);
+    padding: 0;
+    font-size: 0.95em;
+  }
+
+  /* Inline code inside a heading keeps the heading colour */
+  .dark h1 code,
+  .dark h2 code,
+  .dark h3 code,
+  .dark h4 code {
+    color: var(--oxo-purple);
+  }
+
+  /* Blockquotes */
+  .dark blockquote {
+    border-left: 3px solid var(--oxo-purple);
+    background-color: var(--oxo-bg-alt);
+    color: var(--oxo-fg-dim);
+    padding: 0.75rem 1rem;
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Tables */
+  .dark table {
+    border-collapse: collapse;
+    border: 1px solid var(--oxo-surface1);
+  }
+  .dark th {
+    background-color: var(--oxo-bg-alt);
+    color: var(--oxo-fg);
+    border-bottom: 1px solid var(--oxo-surface1);
+    text-align: left;
+    font-weight: 600;
+  }
+  .dark td {
+    border-color: var(--oxo-surface0);
+  }
+  .dark tr:hover td {
+    background-color: var(--oxo-bg-alt);
+  }
+
+  /* Horizontal rule */
+  .dark hr {
+    border: 0;
+    border-top: 1px solid var(--oxo-surface1);
+    margin: 2rem 0;
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--oxo-purple);
+    color: var(--oxo-bg);
+  }
+  ::-moz-selection {
+    background-color: var(--oxo-purple);
+    color: var(--oxo-bg);
+  }
+
+  /* Buttons / install cards */
+  .dark button,
+  .dark .button,
+  .dark a.button {
+    background-color: var(--oxo-surface0);
+    color: var(--oxo-fg);
+    border: 1px solid var(--oxo-surface1);
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  .dark button:hover,
+  .dark .button:hover,
+  .dark a.button:hover {
+    background-color: var(--oxo-surface1);
+    border-color: var(--oxo-purple);
+    color: var(--oxo-fg);
+  }
+
+  /* Header / nav */
+  .dark header,
+  .dark nav {
+    background-color: var(--oxo-bg);
+    border-bottom: 1px solid var(--oxo-surface0);
+  }
+
+  /* Scrollbar (webkit) */
+  .dark ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: var(--oxo-bg);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: var(--oxo-surface1);
+    border-radius: 5px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--oxo-surface2);
+  }
+
+  /* Footer */
+  .dark footer {
+    color: var(--oxo-fg-muted);
+    border-top: 1px solid var(--oxo-surface0);
+  }
+
+  /* Tighter vertical rhythm — base CSS leaves 6rem above every h2/h3 */
+  .dark h1 { margin-top: 0; margin-bottom: 0.75rem; }
+  .dark h2 { margin-top: 2rem; margin-bottom: 0.75rem; }
+  .dark h3 { margin-top: 1.5rem; margin-bottom: 0.5rem; }
+  .dark h4 { margin-top: 1.25rem; margin-bottom: 0.5rem; }
+
+  /* Override the heaviest base rule (h2,h3{margin-top:6rem}) */
+  .dark .page-body h2,
+  .dark .page-body h3 { margin-top: 2rem; }
+  .dark .page-body h3 { margin-top: 1.5rem; }
+
+  /* First heading in the body shouldn't push down */
+  .dark .page-body > :first-child,
+  .dark .page-body h1:first-child,
+  .dark .page-body h2:first-child,
+  .dark .page-body h3:first-child { margin-top: 0; }
+
+  /* Paragraph + list spacing */
+  .dark p { margin-bottom: 0.75rem; }
+  .dark ul, .dark ol { margin-bottom: 0.75rem; }
+
+  /* Pull the nav closer to the title and the body closer to the nav */
+.dark .title { padding-bottom: 0.25rem; }
+.dark .nav { margin-top: 0.5rem; margin-bottom: 1.5rem; }

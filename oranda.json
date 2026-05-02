@@ -6,6 +6,7 @@
           "repository": "https://github.com/gmartsenkov/httpee"
   },
   "styles": {
-    "theme": "dark"
+    "theme": "dark",
+    "additional_css": ["./oxocarbon.css"]
   }
 }
