@@ -1,4 +1,10 @@
 {
+  "build": {
+    "path_prefix": "httpee"
+  },
+  "project": {
+          "repository": "https://github.com/gmartsenkov/httpee"
+  },
   "styles": {
     "theme": "dark"
   }
