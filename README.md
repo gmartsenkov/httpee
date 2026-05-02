@@ -45,14 +45,9 @@ Running `httpee` with no arguments lists all discovered templates:
 
 ```
 $ httpee
-example/ping
-    Example.com
-
-example/users/create
-    Users - Create (Create an individual user)
-
-example/users/show
-    Users - Show (Show an individual user)
+  ❯ example/ping             Example.com
+  ❯ example/users/create     Create an individual user
+  ❯ example/users/show       Show an individual user
 ```
 
 ### Options
