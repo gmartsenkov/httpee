@@ -3,10 +3,20 @@
     "path_prefix": "httpee"
   },
   "project": {
-          "repository": "https://github.com/gmartsenkov/httpee"
+    "repository": "https://github.com/gmartsenkov/httpee"
   },
   "styles": {
     "theme": "dark",
-    "additional_css": ["./oxocarbon.css"]
+    "additional_css": [
+      "./oxocarbon.css"
+    ]
+  },
+  "components": {
+    "artifacts": {
+      "cargo_dist": true
+    },
+    "mdbook": {
+      "path": "./docs"
+    }
   }
 }

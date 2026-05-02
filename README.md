@@ -1,231 +1,57 @@
-# httpee
-
-Run HTTP requests from TOML templates.
-
-## Install
+A lightweight, terminal-native HTTP client for developers who'd rather not run Postman. Requests live as plain TOML files alongside your code, so they version, diff, and review like everything else in the repo.
 
 ```
-cargo install --path .
+$ httpee
+  ❯ accounts/list    List accounts in this org
+  ❯ users/create     POST a new user
+  ❯ users/show       GET a user by id
 ```
 
 ## Quick start
 
-Create an `httpee.toml` config in your project directory:
+Install httpee following the instructions at <https://gmartsenkov.github.io/httpee/>.
+
+Then create an `httpee.toml` config in your project directory:
 
 ```toml
-dirs = ["requests"]
+dirs = ["users"]
 
 [variables]
-token = "my-api-token"
+org = "acme"
 ```
 
-Create a template in `requests/health.toml`:
+Create a template in `users/create.toml`:
 
 ```toml
-name = "Health check"
-description = "Check if the API is up"
-
-[request]
-url = "https://api.example.com/health"
-```
-
-Run it:
-
-```
-httpee requests/health
-```
-
-## Usage
-
-```
-httpee [TEMPLATE] [KEY=VALUE...] [OPTIONS]
-```
-
-Running `httpee` with no arguments lists all discovered templates:
-
-```
-$ httpee
-  ❯ example/ping             Example.com
-  ❯ example/users/create     Create an individual user
-  ❯ example/users/show       Show an individual user
-```
-
-### Options
-
-| Flag | Description |
-|------|-------------|
-| `-v, --verbose` | Print status, headers, and body |
-| `--status` | Print only the status code |
-| `--headers` | Print response headers |
-| `--no-color` | Disable syntax highlighting |
-
-### Variable overrides
-
-Override template variables from the command line:
-
-```
-httpee example/users/create id=42 token=secret
-```
-
-## Templates
-
-Templates are TOML files that define an HTTP request:
-
-```toml
-name = "Users - Create"
-description = "Create an individual user"
+name = "Create user"
+description = "POST a new user"
 
 [variables]
-id = 100
-token = "123"
+name = "Default Name"
 
 [request]
-url = "https://httpbin.org/anything/{{id}}"
+url = "https://api.example.com/orgs/{{ org }}/users"
 method = "POST"
 body = """
 {
-  "name": "Bob",
-  "id": "{{id}}"
+  "name": "{{ name }}",
+  "email": "{{ email }}"
 }
 """
 
 [request.headers]
 content-type = "application/json"
-authorization = "Bearer {{token}}"
-```
-
-### Fields
-
-| Field | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `name` | No | `""` | Display name shown when listing templates |
-| `description` | No | `""` | Description shown when listing templates |
-| `variables` | No | `{}` | Template-local variables |
-| `request.url` | Yes | | Request URL (supports template rendering) |
-| `request.method` | No | `GET` | HTTP method |
-| `request.body` | No | `""` | Request body (supports template rendering) |
-| `request.headers` | No | `{}` | Headers as key-value pairs (values support template rendering) |
-
-### Template rendering
-
-httpee uses [minijinja](https://github.com/mitsuhiko/minijinja) for variable interpolation:
-
-```toml
-[request]
-url = "https://api.example.com/users/{{id}}"
-```
-
-### Built-in functions
-
-| Function | Description | Example |
-|----------|-------------|---------|
-| `env(name)` | Read an environment variable. Errors if unset. | `{{ env('API_TOKEN') }}` |
-| `bearer(token)` | Format a bearer auth header value. | `{{ bearer(token) }}` → `Bearer <token>` |
-| `basic(user, pass)` | Format a basic auth header value (base64-encoded). | `{{ basic(user, pass) }}` → `Basic <base64>` |
-
-```toml
-[request.headers]
 authorization = "{{ bearer(env('API_TOKEN')) }}"
 ```
 
-### Variable resolution order
-
-Variables are resolved with the following priority (highest first):
-
-1. CLI overrides (`httpee template id=42`)
-2. Template `[variables]`
-3. Additional config variables
-4. Main `httpee.toml` `[variables]`
-
-## Configuration
-
-httpee looks for `httpee.toml` in the current directory.
-
-```toml
-dirs = ["requests", "requests/users"]
-additional-configs = ["httpee.local.toml"]
-
-[variables]
-id = "5"
-token = "default-token"
-```
-
-### Fields
-
-| Field | Description |
-|-------|-------------|
-| `dirs` | Directories to search for `.toml` template files |
-| `additional-configs` | Extra config files to merge (useful for local overrides) |
-| `variables` | Global variables available to all templates |
-
-### Local overrides
-
-Use `additional-configs` to layer in local settings that you can gitignore:
-
-```toml
-# httpee.local.toml
-[variables]
-token = "my-personal-token"
-secret = "dev-secret"
-```
-
-## Shell completions
-
-httpee supports dynamic tab completion for template names across bash, zsh, and fish.
-
-### bash
-
-Add to `~/.bashrc`:
-
-```bash
-eval "$(COMPLETE=bash httpee)"
-```
-
-### zsh
-
-Add to `~/.zshrc`:
-
-```zsh
-eval "$(COMPLETE=zsh httpee)"
-```
-
-### fish
-
-Add to `~/.config/fish/config.fish`:
-
-```fish
-COMPLETE=fish httpee | source
-```
-
-Completions are dynamic - they discover templates from the `httpee.toml` config in your current directory at completion time.
-
-## Response output
-
-Responses are syntax-highlighted based on `Content-Type` (JSON, HTML, XML). Highlighting is automatically disabled when piping output.
+Run it, with the token sourced from the environment and per-call values passed
+as CLI overrides:
 
 ```
-$ httpee example/ping --verbose
-200 OK
-
-content-type: text/html; charset=UTF-8
-content-length: 1256
-
-<!doctype html>
-<html>
-...
+API_TOKEN=$(pass api/example) httpee users/create name=Bob email=bob@acme.io
 ```
 
-Get just the status code:
+## Documentation
 
-```
-$ httpee example/ping --status
-200
-```
-
-Get just the headers:
-
-```
-$ httpee example/ping --headers
-content-type: text/html; charset=UTF-8
-content-length: 1256
-```
+Full docs are at <https://gmartsenkov.github.io/httpee/book/>: usage, template
+schema, configuration, shell completions, and response formatting.
