@@ -1,4 +1,5 @@
 mod config;
+mod errors;
 mod highlight;
 mod style;
 mod template;

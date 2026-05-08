@@ -5,6 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::config::Config;
+use crate::errors::TemplateError;
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -88,48 +89,97 @@ impl Template {
     fn render(&self, source: &str) -> Result<String, String> {
         let env = build_env();
         env.render_str(source, &self.variables)
-            .map_err(|e| format!("Template rendering failed: {e}"))
+            .map_err(|e| crate::errors::pretty_template_error(&e))
     }
 }
 
 fn build_env() -> Environment<'static> {
     let mut env = Environment::new();
     env.set_auto_escape_callback(|_| minijinja::AutoEscape::None);
+    env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
     env.add_function("env", env_function);
     env.add_function("bearer", bearer_function);
     env.add_function("basic", basic_function);
     env
 }
 
-fn arg_error(msg: &str) -> minijinja::Error {
-    minijinja::Error::new(minijinja::ErrorKind::InvalidOperation, msg.to_string())
+struct HelperSpec {
+    fn_name: &'static str,
+    detail: &'static str,
+    example: &'static str,
 }
 
-fn env_function(name: Option<String>) -> Result<String, minijinja::Error> {
-    let name = name.ok_or_else(|| {
-        arg_error("env() requires 1 argument: the variable name — e.g. {{ env('API_TOKEN') }}")
-    })?;
-    std::env::var(&name)
-        .map_err(|_| arg_error(&format!("environment variable '{name}' is not set")))
+const ENV: HelperSpec = HelperSpec {
+    fn_name: "env",
+    detail: "1 argument: the variable name",
+    example: "{{ env('API_TOKEN') }}",
+};
+
+const BEARER: HelperSpec = HelperSpec {
+    fn_name: "bearer",
+    detail: "1 argument: the token",
+    example: "{{ bearer(token) }}",
+};
+
+const BASIC: HelperSpec = HelperSpec {
+    fn_name: "basic",
+    detail: "2 arguments: username and password",
+    example: "{{ basic(user, pass) }}",
+};
+
+impl HelperSpec {
+    fn missing_args(&self) -> minijinja::Error {
+        TemplateError::HelperArgs {
+            fn_name: self.fn_name,
+            detail: self.detail,
+            example: self.example,
+        }
+        .into_minijinja()
+    }
+
+    fn require_string(
+        &self,
+        args: &[minijinja::Value],
+        idx: usize,
+    ) -> Result<String, minijinja::Error> {
+        let Some(value) = args.get(idx) else {
+            return Err(self.missing_args());
+        };
+        if value.is_undefined() {
+            return Err(minijinja::Error::from(minijinja::ErrorKind::UndefinedError));
+        }
+        value.as_str().map(str::to_string).ok_or_else(|| {
+            TemplateError::WrongArgType {
+                fn_name: self.fn_name,
+                got: value.kind().to_string(),
+            }
+            .into_minijinja()
+        })
+    }
 }
 
-fn bearer_function(token: Option<String>) -> Result<String, minijinja::Error> {
-    let token = token.ok_or_else(|| {
-        arg_error("bearer() requires 1 argument: the token — e.g. {{ bearer(token) }}")
-    })?;
+fn env_function(
+    args: minijinja::value::Rest<minijinja::Value>,
+) -> Result<String, minijinja::Error> {
+    let name = ENV.require_string(&args, 0)?;
+    std::env::var(&name).map_err(|_| TemplateError::EnvVarMissing(name).into_minijinja())
+}
+
+fn bearer_function(
+    args: minijinja::value::Rest<minijinja::Value>,
+) -> Result<String, minijinja::Error> {
+    let token = BEARER.require_string(&args, 0)?;
     Ok(format!("Bearer {token}"))
 }
 
 fn basic_function(
-    username: Option<String>,
-    password: Option<String>,
+    args: minijinja::value::Rest<minijinja::Value>,
 ) -> Result<String, minijinja::Error> {
-    let (username, password) = match (username, password) {
-        (Some(u), Some(p)) => (u, p),
-        _ => return Err(arg_error(
-            "basic() requires 2 arguments: username and password — e.g. {{ basic(user, pass) }}",
-        )),
-    };
+    if args.len() < 2 {
+        return Err(BASIC.missing_args());
+    }
+    let username = BASIC.require_string(&args, 0)?;
+    let password = BASIC.require_string(&args, 1)?;
     use base64::Engine;
     let encoded =
         base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"));
@@ -181,6 +231,10 @@ mod tests {
 
     fn empty_config() -> Config {
         Config::default()
+    }
+
+    fn disable_color() {
+        crate::style::init(true);
     }
 
     fn config_with_variables() -> Config {
@@ -250,7 +304,7 @@ mod tests {
 
     #[test]
     fn build_request_interpolates_url() {
-        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let tmpl = Template::parse(TEMPLATE_TOML, &config_with_variables()).unwrap();
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.url().as_str(), "https://httpbin.org/anything/100");
@@ -258,7 +312,7 @@ mod tests {
 
     #[test]
     fn build_request_interpolates_headers() {
-        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let tmpl = Template::parse(TEMPLATE_TOML, &config_with_variables()).unwrap();
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.headers()["authorization"], "Bearer 123");
@@ -279,7 +333,7 @@ mod tests {
 
     #[test]
     fn build_request_sets_method() {
-        let tmpl = Template::parse(TEMPLATE_TOML, &empty_config()).unwrap();
+        let tmpl = Template::parse(TEMPLATE_TOML, &config_with_variables()).unwrap();
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.method(), "POST");
@@ -303,6 +357,7 @@ mod tests {
 
     #[test]
     fn interpolate_env_variable_missing_errors() {
+        disable_color();
         let tmpl = Template::parse(
             r#"
             [request]
@@ -313,7 +368,71 @@ mod tests {
         .unwrap();
         let err = tmpl.build_request().unwrap_err();
 
-        assert!(err.contains("HTTPEE_MISSING_VAR_XYZZY"));
+        assert_eq!(
+            err,
+            "  ✗ environment variable 'HTTPEE_MISSING_VAR_XYZZY' is not set\n    set it in your shell, e.g. `export HTTPEE_MISSING_VAR_XYZZY=...`"
+        );
+    }
+
+    #[test]
+    fn undefined_variable_errors_with_name() {
+        disable_color();
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com/{{ missing_var }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert_eq!(
+            err,
+            "  ✗ 'missing_var' is not defined\n    set it in [variables] or pass it as an override (e.g. `missing_var=...`)"
+        );
+    }
+
+    #[test]
+    fn undefined_helper_arg_errors_with_name() {
+        disable_color();
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com"
+            [request.headers]
+            authorization = "{{ bearer(missing_token) }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert_eq!(
+            err,
+            "  ✗ 'missing_token' (in bearer(missing_token)) is not defined\n    set it in [variables] or pass it as an override"
+        );
+    }
+
+    #[test]
+    fn undefined_helper_args_lists_candidates() {
+        disable_color();
+        let tmpl = Template::parse(
+            r#"
+            [request]
+            url = "http://example.com"
+            [request.headers]
+            authorization = "{{ basic(u_var, p_var) }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert_eq!(
+            err,
+            "  ✗ one of 'u_var', 'p_var' (in basic(u_var, p_var)) is not defined\n    set it in [variables] or pass it as an override"
+        );
     }
 
     #[test]
@@ -381,6 +500,7 @@ mod tests {
 
     #[test]
     fn bearer_helper_missing_argument_errors_clearly() {
+        disable_color();
         let tmpl = Template::parse(
             r#"
             [request]
@@ -394,18 +514,15 @@ mod tests {
         .unwrap();
         let err = tmpl.build_request().unwrap_err();
 
-        assert!(
-            err.contains("bearer()"),
-            "error should name the function: {err}"
-        );
-        assert!(
-            err.contains("token"),
-            "error should hint the argument: {err}"
+        assert_eq!(
+            err,
+            "  ✗ bearer() requires 1 argument: the token\n    e.g. {{ bearer(token) }}"
         );
     }
 
     #[test]
     fn basic_helper_missing_argument_errors_clearly() {
+        disable_color();
         let tmpl = Template::parse(
             r#"
             [variables]
@@ -422,13 +539,9 @@ mod tests {
         .unwrap();
         let err = tmpl.build_request().unwrap_err();
 
-        assert!(
-            err.contains("basic()"),
-            "error should name the function: {err}"
-        );
-        assert!(
-            err.contains("password"),
-            "error should hint the argument: {err}"
+        assert_eq!(
+            err,
+            "  ✗ basic() requires 2 arguments: username and password\n    e.g. {{ basic(user, pass) }}"
         );
     }
 
@@ -448,5 +561,27 @@ mod tests {
         let req = tmpl.build_request().unwrap();
 
         assert_eq!(req.url().as_str(), "http://example.com/42");
+    }
+
+    #[test]
+    fn undefined_expression_names_the_snippet() {
+        disable_color();
+        let tmpl = Template::parse(
+            r#"
+            [variables]
+            xs = ["a"]
+
+            [request]
+            url = "http://example.com/{{ xs[5] }}"
+            "#,
+            &empty_config(),
+        )
+        .unwrap();
+        let err = tmpl.build_request().unwrap_err();
+
+        assert_eq!(
+            err,
+            "  ✗ 'xs[5]' is not defined\n    check that all referenced variables are defined in [variables] or passed as overrides"
+        );
     }
 }
