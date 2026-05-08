@@ -318,13 +318,13 @@ fn print_response(
         let elapsed_s = format_duration(elapsed);
         let size_s = format_size(body.len());
         println!(
-            "  {} {}  {}",
+            "{} {}  {}",
             style::accent("→"),
             style::bold(method),
             style::dim(&final_url)
         );
         println!(
-            "  {glyph} {status_painted}   {}   {}",
+            "{glyph} {status_painted}   {}   {}",
             style::dim(&elapsed_s),
             style::dim(&size_s)
         );
@@ -350,7 +350,7 @@ fn print_section_rule(label: &str) {
     let dashes_needed = RULE_WIDTH.saturating_sub(prefix.chars().count());
     let dashes: String = "─".repeat(dashes_needed);
     let line = format!("{prefix}{dashes}");
-    println!("  {}", style::dim(&line));
+    println!("{}", style::dim(&line));
 }
 
 fn print_headers(headers: &reqwest::header::HeaderMap) {
@@ -367,7 +367,7 @@ fn print_headers(headers: &reqwest::header::HeaderMap) {
 
     for (key, value) in entries {
         let key_cell = format!("{key:<key_width$}");
-        println!("    {}  {value}", style::dim(&key_cell));
+        println!("{}  {value}", style::dim(&key_cell));
     }
 }
 

@@ -9,16 +9,16 @@ Show status, headers, timing, size, and body:
 
 ```
 $ httpee example/ping --verbose
-  → GET  http://example.com/
-  ✓ 200 OK   32ms   528 B
+→ GET  http://example.com/
+✓ 200 OK   32ms   528 B
 
-  ── headers ───────────────────────────────────────
-    content-type   text/html
-    ...
+── headers ───────────────────────────────────────
+content-type   text/html
+...
 
-  ── body ──────────────────────────────────────────
-  <!doctype html>
-  ...
+── body ──────────────────────────────────────────
+<!doctype html>
+...
 ```
 
 ## Status only
