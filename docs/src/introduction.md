@@ -14,8 +14,15 @@ interpolation, environment-aware secrets, and per-template overrides.
 
 ## What's in these docs
 
+- [Installation](./installation.md): Homebrew, shell installer, Cargo, prebuilt binaries
 - [Usage](./usage.md): CLI flags, listing templates, variable overrides
 - [Templates](./templates.md): schema, rendering, built-in functions
 - [Configuration](./configuration.md): `httpee.toml`, additional configs, local overrides
 - [Shell completions](./completions.md): bash, zsh, fish setup
 - [Response output](./output.md): verbose, status-only, headers-only modes
+
+## Links
+
+- Repository: <https://github.com/gmartsenkov/httpee>
+- Issue tracker: <https://github.com/gmartsenkov/httpee/issues>
+- Releases: <https://github.com/gmartsenkov/httpee/releases>

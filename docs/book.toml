@@ -1,4 +1,11 @@
 [book]
 title = "httpee"
 authors = ["Georgi Martsenkov"]
+description = "Run HTTP requests from TOML templates."
 language = "en"
+
+[output.html]
+git-repository-url = "https://github.com/gmartsenkov/httpee"
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+smart-punctuation = true

@@ -1,6 +1,7 @@
 # Summary
 
 - [Introduction](./introduction.md)
+- [Installation](./installation.md)
 - [Usage](./usage.md)
 - [Templates](./templates.md)
 - [Configuration](./configuration.md)
