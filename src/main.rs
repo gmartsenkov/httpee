@@ -1,6 +1,7 @@
 mod config;
 mod errors;
 mod highlight;
+mod spinner;
 mod style;
 mod template;
 
@@ -264,8 +265,13 @@ fn execute_request(tmpl: &template::Template) -> (reqwest::blocking::Response, D
 
     let client = reqwest::blocking::Client::new();
     let start = std::time::Instant::now();
-    match client.execute(request) {
-        Ok(r) => (r, start.elapsed()),
+    let result = {
+        let _spinner = spinner::Spinner::start();
+        client.execute(request)
+    };
+    let elapsed = start.elapsed();
+    match result {
+        Ok(r) => (r, elapsed),
         Err(e) => {
             eprintln!("Request failed: {e}");
             process::exit(2);

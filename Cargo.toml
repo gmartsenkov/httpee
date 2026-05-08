@@ -17,6 +17,7 @@ minijinja = "2"
 clap_complete = { version = "4", features = ["unstable-dynamic"] }
 owo-colors = { version = "4.3.0", features = ["supports-colors"] }
 base64 = "0.22.1"
+spinoff = "0.8.0"
 
 # The profile that 'dist' will build with
 [profile.dist]

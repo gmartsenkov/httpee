@@ -6,7 +6,7 @@ id = "1"
 token = "123"
 
 [request]
-url = "https://httpbin.org/anything/{{basic(x,b)}}"
+url = "https://httpbin.org/delay/5"
 method = "GET"
 
 [request.headers]
