@@ -4,6 +4,8 @@
 as a small TOML file and execute it by name from the shell, with variable
 interpolation, environment-aware secrets, and per-template overrides.
 
+![httpee demo](https://raw.githubusercontent.com/gmartsenkov/httpee/master/docs/assets/demo.gif?v=4)
+
 ## When you'd use it
 
 - You hit the same set of endpoints across local/staging/prod and want a single
@@ -20,6 +22,7 @@ interpolation, environment-aware secrets, and per-template overrides.
 - [Configuration](./configuration.md): `httpee.toml`, additional configs, local overrides
 - [Shell completions](./completions.md): bash, zsh, fish setup
 - [Response output](./output.md): verbose, status-only, headers-only modes
+- [Sharing requests](./sharing.md): export a template as a curl one-liner
 
 ## Links
 

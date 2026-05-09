@@ -1,11 +1,12 @@
 mod config;
+mod curl;
 mod errors;
 mod highlight;
 mod spinner;
 mod style;
 mod template;
 
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -43,12 +44,21 @@ struct Cli {
     /// Disable syntax highlighting
     #[arg(long)]
     no_color: bool,
+
+    /// Print the request as a snippet in the chosen format instead of executing it
+    #[arg(long = "as", value_enum, value_name = "FORMAT")]
+    as_format: Option<Format>,
 }
 
 #[derive(Subcommand)]
 enum Command {
     /// Create a default httpee.toml file in the current directory
     Init,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum Format {
+    Curl,
 }
 
 fn parse_key_value(s: &str) -> Result<(String, String), String> {
@@ -99,9 +109,28 @@ fn main() {
     let template_path = find_template(template_name, &templates);
     let mut tmpl = load_template(&template_path, &cfg);
     tmpl.apply_overrides(&cli.overrides);
+
+    if let Some(format) = cli.as_format {
+        print_snippet(&tmpl, format);
+        return;
+    }
+
     let method = tmpl.request.method.clone();
     let (response, elapsed) = execute_request(&tmpl);
     print_response(response, elapsed, &method, &cli);
+}
+
+fn print_snippet(tmpl: &template::Template, format: Format) {
+    let request = match tmpl.build_request() {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(1);
+        }
+    };
+    match format {
+        Format::Curl => println!("{}", curl::render(&request)),
+    }
 }
 
 fn init_config() {

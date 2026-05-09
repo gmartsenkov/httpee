@@ -6,7 +6,7 @@ id = "1"
 token = "123"
 
 [request]
-url = "https://httpbin.org/delay/5"
+url = "https://httpbin.org/delay/1"
 method = "GET"
 
 [request.headers]

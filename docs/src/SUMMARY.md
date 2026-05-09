@@ -7,3 +7,4 @@
 - [Configuration](./configuration.md)
 - [Shell completions](./completions.md)
 - [Response output](./output.md)
+- [Sharing requests](./sharing.md)
